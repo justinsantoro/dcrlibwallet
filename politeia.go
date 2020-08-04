@@ -2,15 +2,12 @@ package dcrlibwallet
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -168,21 +165,12 @@ func (p *Politeia) GetProposalsChunk(startHash string) (string, error) {
 		return "", err
 	}
 
-	wg, _ := errgroup.WithContext(context.Background())
 	for i := range proposals {
-		i := i
-		wg.Go(func() error {
-			voteStatus, err := p.getVoteStatus(proposals[i].CensorshipRecord.Token)
-			if err != nil {
-				return err
-			}
-			proposals[i].VoteStatus = *voteStatus
-			return nil
-		})
-	}
-
-	if err := wg.Wait(); err != nil {
-		return "", err
+		voteStatus, err := p.getVoteStatus(proposals[i].CensorshipRecord.Token)
+		if err != nil {
+			return "", err
+		}
+		proposals[i].VoteStatus = *voteStatus
 	}
 
 	jsonBytes, err := json.Marshal(proposals)
