@@ -346,3 +346,33 @@ type VoteStatus struct {
 type VotesStatus struct {
 	VotesStatus []VoteStatus `json:"votesstatus"`
 }
+
+type TokenInventory struct {
+	Pre       []string `json:"pre"`
+	Active    []string `json:"active"`
+	Approved  []string `json:"approved"`
+	Rejected  []string `json:"rejected"`
+	Abandoned []string `json:"abandoned"`
+}
+
+type Tokens struct {
+	Tokens []string `json:"tokens"`
+}
+
+type VoteSummary struct {
+	Status             int                `json:"status"`
+	Approved           bool               `json:"approved,omitempty"`
+	Type           	   VoteT              `json:"type,omitempty"`
+	EligibleTickets    int                `json:"eligibletickets"`
+	Duration    	   int64              `json:"duration,omitempty"`
+	EndHeight          int64              `json:"endheight,omitempty"`
+	QuorumPercentage   int                `json:"quorumpercentage,omitempty"`
+	PassPercentage     int                `json:"passpercentage,omitempty"`
+	OptionsResult      []VoteOptionResult `json:"optionsresult,omitempty"`
+}
+
+type VoteT struct {
+	VoteTypeInvalid     int                
+	VoteTypeStandard    int                
+	VoteType 			int               
+}
