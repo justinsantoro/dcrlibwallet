@@ -91,7 +91,7 @@ const (
 
 var (
 	// ErrorStatus converts error status codes to human readable text.
-	ErrorStatus = map[int]string{
+	errorStatus = map[int]string{
 		ErrorStatusInvalid:                     "invalid error status",
 		ErrorStatusInvalidPassword:             "invalid password",
 		ErrorStatusMalformedEmail:              "malformed email",
@@ -162,7 +162,7 @@ var (
 type errorStatusCode int
 
 func (sc *errorStatusCode) String() string {
-	if s, ok := ErrorStatus[int(*sc)]; ok {
+	if s, ok := errorStatus[int(*sc)]; ok {
 		return s
 	}
 	return "unknown error"
@@ -294,7 +294,7 @@ type TokenInventory struct {
 	Abandoned []string `json:"abandoned"`
 }
 
-type Tokens struct {
+type BatchProposalsRequest struct {
 	Tokens []string `json:"tokens"`
 }
 
