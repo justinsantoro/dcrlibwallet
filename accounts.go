@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/hdkeychain/v2"
 	"github.com/decred/dcrwallet/errors/v2"
 )
 
@@ -198,4 +199,13 @@ func (wallet *Wallet) HDPathForAccount(accountNumber int32) (string, error) {
 	}
 
 	return hdPath + strconv.Itoa(int(accountNumber)), nil
+}
+
+//GetAccountMasterPubKey returns BIP0044 master public key for the passed acount
+func(wallet *Wallet) GetAccountMasterPubKey(account uint32) (string, error) {
+	pubKey, err := wallet.internal.MasterPubKey(wallet.shutdownContext(), account)
+	if err != nil {
+		return "", err
+	}
+	return pubKey.String(), nil
 }
