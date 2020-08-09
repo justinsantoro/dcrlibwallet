@@ -179,8 +179,9 @@ func (sc errorStatusCode) UnmarshalJSON(b []byte) error {
 }
 
 type PoliteiawwwError struct {
-	code    errorStatusCode `json:"errorcode"`
-	context []string        `json:"errorcontext,omitempty"`
+	HTTPCode int
+	code     errorStatusCode `json:"errorcode"`
+	context  []string        `json:"errorcontext,omitempty"`
 }
 
 //Code returns the error code as an int
@@ -189,7 +190,7 @@ func (e *PoliteiawwwError) Code() int {
 }
 
 func (e *PoliteiawwwError) String() string {
-	return fmt.Sprintf("%d - %s%s", e.Code, e.code.String(), e.contextstr())
+	return fmt.Sprintf("http%d: %d - %s%s", e.HTTPCode, e.Code, e.code.String(), e.contextstr())
 }
 
 func (e *PoliteiawwwError) contextstr() string {
@@ -202,12 +203,16 @@ func (e *PoliteiawwwError) contextstr() string {
 
 //Error satisfies the Error interface
 func (e *PoliteiawwwError) Error() string {
-
 	return fmt.Sprintf("Politeiawww server responded with error code: %s", e.String())
 }
 
 type ServerVersion struct {
-	Version int `json:"version"`
+	Version           int    `json:"version"`
+	Route             string `json:"route"`
+	Pubkey            string `json:"pubkey`
+	Testnet           bool   `json:testnet`
+	Mode              string `json:mode`
+	Activeusersession bool   `json:activeusersession`
 }
 
 type ServerPolicy struct {
@@ -298,6 +303,10 @@ type BatchProposalsRequest struct {
 	Tokens []string `json:"tokens"`
 }
 
+type BatchVoteSummaryResponse struct {
+	BestBlock int                    `json:"bestblock"`
+	Summaries map[string]VoteSummary `json:"summaries"`
+}
 type VoteSummary struct {
 	Status           int                `json:"status"`
 	Approved         bool               `json:"approved,omitempty"`
