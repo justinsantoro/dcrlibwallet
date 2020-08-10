@@ -239,28 +239,28 @@ type ProposalCensorshipRecord struct {
 }
 
 type Proposal struct {
-	Name             string                   `json:"name"`
-	State            int                      `json:"state"`
-	Status           int                      `json:"status"`
-	Timestamp        int64                    `json:"timestamp"`
-	UserID           string                   `json:"userid"`
-	Username         string                   `json:"username"`
-	PublicKey        string                   `json:"publickey"`
-	Signature        string                   `json:"signature"`
-	NumComments      int                      `json:"numcomments"`
-	Version          string                   `json:"version"`
-	PublishedAt      int64                    `json:"publishedat"`
-	Files            []ProposalFile           `json:"files"`
-	MetaData         []ProposalMetaData       `json:"metadata"`
-	CensorshipRecord ProposalCensorshipRecord `json:"censorshiprecord"`
-	VoteStatus       VoteStatus               `json:"votestatus"`
+	Name             string                    `json:"name"`
+	State            int                       `json:"state"`
+	Status           int                       `json:"status"`
+	Timestamp        int64                     `json:"timestamp"`
+	UserID           string                    `json:"userid"`
+	Username         string                    `json:"username"`
+	PublicKey        string                    `json:"publickey"`
+	Signature        string                    `json:"signature"`
+	NumComments      int                       `json:"numcomments"`
+	Version          string                    `json:"version"`
+	PublishedAt      int64                     `json:"publishedat"`
+	Files            []ProposalFile            `json:"files"`
+	MetaData         []ProposalMetaData        `json:"metadata"`
+	CensorshipRecord *ProposalCensorshipRecord `json:"censorshiprecord"`
+	VoteStatus       *VoteStatus               `json:"votestatus"`
 }
 
 type Proposals struct {
 	Proposals []Proposal `json:"proposals"`
 }
 
-type ProposalResult struct {
+type proposalResult struct {
 	Proposal Proposal `json:"proposal"`
 }
 
@@ -271,8 +271,8 @@ type VoteOption struct {
 }
 
 type VoteOptionResult struct {
-	Option        VoteOption `json:"option"`
-	VotesReceived int64      `json:"votesreceived"`
+	Option        *VoteOption `json:"option"`
+	VotesReceived int64       `json:"votesreceived"`
 }
 
 type VoteStatus struct {
@@ -304,13 +304,13 @@ type BatchProposalsRequest struct {
 }
 
 type BatchVoteSummaryResponse struct {
-	BestBlock int                    `json:"bestblock"`
-	Summaries map[string]VoteSummary `json:"summaries"`
+	BestBlock int                     `json:"bestblock"`
+	Summaries map[string]*VoteSummary `json:"summaries"`
 }
 type VoteSummary struct {
 	Status           int                `json:"status"`
 	Approved         bool               `json:"approved,omitempty"`
-	Type             VoteType           `json:"type,omitempty"`
+	Type             *VoteType          `json:"type,omitempty"`
 	EligibleTickets  int                `json:"eligibletickets"`
 	Duration         int64              `json:"duration,omitempty"`
 	EndHeight        int64              `json:"endheight,omitempty"`
