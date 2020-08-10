@@ -30,8 +30,8 @@ type Politeia struct {
 }
 
 //NewPoliteia returns a new Politeia type
-func NewPoliteia(timeoutSeconds int64) Politeia {
-	return Politeia{
+func NewPoliteia(timeoutSeconds int64) *Politeia {
+	return &Politeia{
 		client: pwww.NewClient(time.Duration(timeoutSeconds * int64(time.Second))),
 		ctx:    context.Background(),
 	}
