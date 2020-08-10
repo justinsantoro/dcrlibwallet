@@ -25,7 +25,7 @@ type Politeia struct {
 	inventory *pwww.TokenInventory
 	client    pwww.Client
 	ctx       context.Context
-	lcount    [4]int //loaded count for each token category
+	lcount    [5]int //loaded count for each token category
 	invtypes  map[string]bool
 }
 
