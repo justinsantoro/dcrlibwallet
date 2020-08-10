@@ -316,7 +316,7 @@ func (p *Politeia) LoadPreVoteProposals(n int) (*ProposalsIterator, error) {
 //Active proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadActiveProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatApproved)
+	return p.getProposalIterator(n, pcatActive)
 }
 
 //LoadApprovedProposals returns a ProposalIterator after loading the next n
@@ -337,5 +337,5 @@ func (p *Politeia) LoadRejectedProposals(n int) (*ProposalsIterator, error) {
 //Abandoned proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadAbandonedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatApproved)
+	return p.getProposalIterator(n, pcatAbandoned)
 }
