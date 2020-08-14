@@ -45,6 +45,23 @@ type PoliteiaProposal struct {
 	VoteSummary *pwww.VoteSummary
 }
 
+type Proposal struct {
+	Name             string
+	State            int
+	Status           int
+	Timestamp        int64
+	Username         string
+	PublicKey        string
+	Signature        string
+	NumComments      int
+	Version          string
+	PublishedAt      int64
+	Files            *ProposalFiles
+	MetaData         *ProposalMetadataIterator
+	CensorshipRecord *pwww.ProposalCensorshipRecord
+	VoteStatus       *pwww.VoteStatus
+}
+
 type ProposalFiles struct {
 	files        []pwww.ProposalFile
 	currentIndex int
@@ -68,6 +85,11 @@ func (fs *ProposalFiles) Reset() {
 type ProposalMetadataIterator struct {
 	metadata     []pwww.ProposalMetaData
 	currentIndex int
+}
+
+type PoliteiaProposalMobile struct {
+	Details     *Proposal
+	VoteSummary *pwww.VoteSummary
 }
 
 func (pm *ProposalMetadataIterator) Next() *pwww.ProposalMetaData {
@@ -186,7 +208,7 @@ func (p *Politeia) getVoteSummaryResp(ctx context.Context, ctokens []string) vot
 	return voteSummaryResponse{vs, err}
 }
 
-func (p *Politeia) LoadProposal(ctx context.Context, ctoken string, voteSummary bool) (*PoliteiaProposal, error) {
+func (p *Politeia) loadProposal(ctx context.Context, ctoken string, voteSummary bool) (*PoliteiaProposal, error) {
 	pchan := make(chan propResponse, 1)
 	vschan := make(chan voteSummaryResponse, 1)
 	go func() {
@@ -266,21 +288,52 @@ func (p *Politeia) GetProposal(ctoken string) (*PoliteiaProposal, error) {
 		return nil, fmt.Errorf("token: %s is not in the inventory ", ctoken)
 	}
 
-	return p.LoadProposal(p.ctx, ctoken, vs)
+	return p.loadProposal(p.ctx, ctoken, vs)
+}
+
+func mapProposalToMobile(prop *PoliteiaProposal) *PoliteiaProposalMobile {
+	if prop == nil {
+		return nil
+	}
+	d := prop.Details
+	return &PoliteiaProposalMobile{
+		Details: &Proposal{
+			Name:             d.Name,
+			State:            d.State,
+			Status:           d.Status,
+			Timestamp:        d.Timestamp,
+			Username:         d.Username,
+			PublicKey:        d.PublicKey,
+			Signature:        d.Signature,
+			NumComments:      d.NumComments,
+			Version:          d.Version,
+			PublishedAt:      d.PublishedAt,
+			Files:            &ProposalFiles{d.Files, 0},
+			MetaData:         &ProposalMetadataIterator{d.MetaData, 0},
+			CensorshipRecord: d.CensorshipRecord,
+			VoteStatus:       d.VoteStatus,
+		},
+		VoteSummary: prop.VoteSummary,
+	}
+}
+
+func (p *Politeia) GetProposalMobile(ctoken string) (*PoliteiaProposalMobile, error) {
+	prop, err := p.GetProposal(ctoken)
+	return mapProposalToMobile(prop), err
 }
 
 //ProposalsIterator allows iterating over a slice of PoliteiaProposals
 type ProposalsIterator struct {
-	proposals    []PoliteiaProposal
+	proposals    []*PoliteiaProposalMobile
 	currentIndex int
 }
 
 //Next returns the next PoliteaiProposal
-func (p *ProposalsIterator) Next() *PoliteiaProposal {
+func (p *ProposalsIterator) Next() *PoliteiaProposalMobile {
 	if p.currentIndex < len(p.proposals) {
 		prop := p.proposals[p.currentIndex]
 		p.currentIndex++
-		return &prop
+		return prop
 	}
 
 	return nil
@@ -347,7 +400,11 @@ func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, err
 	if err != nil {
 		return nil, err
 	}
-	return &ProposalsIterator{proposals: props}, nil
+	mprops := make([]*PoliteiaProposalMobile, len(props))
+	for i, p := range props {
+		mprops[i] = mapProposalToMobile(&p)
+	}
+	return &ProposalsIterator{proposals: mprops}, nil
 }
 
 //LoadPreVoteProposals returns a ProposalIterator after loading the next n
