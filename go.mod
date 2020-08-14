@@ -34,18 +34,20 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1 // indirect
+	github.com/planetdecred/dcrlibwallet/politeiawww v0.0.0-00010101000000-000000000000
 	github.com/planetdecred/dcrlibwallet/spv v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	google.golang.org/appengine v1.5.0 // indirect
 )
 
 replace (
 	decred.org/dcrwallet => decred.org/dcrwallet v1.2.3-0.20191024200307-d273b5687adf
 	github.com/decred/dcrwallet/wallet/v3 => github.com/raedahgroup/dcrwallet/wallet/v3 v3.2.1-badger
+	github.com/planetdecred/dcrlibwallet/politeiawww => ./politeiawww
 	github.com/planetdecred/dcrlibwallet/spv => ./spv
 )
 
