@@ -45,9 +45,45 @@ type PoliteiaProposal struct {
 	VoteSummary *pwww.VoteSummary
 }
 
-// type ProposalFiles struct {
+type ProposalFiles struct {
+	files        []pwww.ProposalFile
+	currentIndex int
+}
 
-// }
+func (fs *ProposalFiles) Next() *pwww.ProposalFile {
+	if fs.currentIndex < len(fs.files) {
+		pf := fs.files[fs.currentIndex]
+		fs.currentIndex++
+		return &pf
+	}
+
+	return nil
+}
+
+//Reset resets the current index to 0
+func (fs *ProposalFiles) Reset() {
+	fs.currentIndex = 0
+}
+
+type ProposalMetadataIterator struct {
+	metadata     []pwww.ProposalMetaData
+	currentIndex int
+}
+
+func (pm *ProposalMetadataIterator) Next() *pwww.ProposalMetaData {
+	if pm.currentIndex < len(pm.metadata) {
+		md := pm.metadata[pm.currentIndex]
+		pm.currentIndex++
+		return &md
+	}
+
+	return nil
+}
+
+//Reset resets the current index to 0
+func (pm *ProposalMetadataIterator) Reset() {
+	pm.currentIndex = 0
+}
 
 //builds a map of proposal tokens to whether or not they have accompanying
 //vote summaries
