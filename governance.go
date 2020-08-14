@@ -10,11 +10,11 @@ import (
 
 //proposal categories
 const (
-	pcatPreVote = iota
-	pcatActive
-	pcatApproved
-	pcatRejected
-	pcatAbandoned
+	PreVote = iota
+	Active
+	Approved
+	Rejected
+	Abandoned
 )
 
 //Politeia handles the loading of proposials on
@@ -44,6 +44,10 @@ type PoliteiaProposal struct {
 	Details     *pwww.Proposal
 	VoteSummary *pwww.VoteSummary
 }
+
+// type ProposalFiles struct {
+
+// }
 
 //builds a map of proposal tokens to whether or not they have accompanying
 //vote summaries
@@ -146,7 +150,7 @@ func (p *Politeia) getVoteSummaryResp(ctx context.Context, ctokens []string) vot
 	return voteSummaryResponse{vs, err}
 }
 
-func (p *Politeia) loadProposal(ctx context.Context, ctoken string, voteSummary bool) (*PoliteiaProposal, error) {
+func (p *Politeia) LoadProposal(ctx context.Context, ctoken string, voteSummary bool) (*PoliteiaProposal, error) {
 	pchan := make(chan propResponse, 1)
 	vschan := make(chan voteSummaryResponse, 1)
 	go func() {
@@ -226,7 +230,7 @@ func (p *Politeia) GetProposal(ctoken string) (*PoliteiaProposal, error) {
 		return nil, fmt.Errorf("token: %s is not in the inventory ", ctoken)
 	}
 
-	return p.loadProposal(p.ctx, ctoken, vs)
+	return p.LoadProposal(p.ctx, ctoken, vs)
 }
 
 //ProposalsIterator allows iterating over a slice of PoliteiaProposals
@@ -289,7 +293,8 @@ func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
 	return tokens, nil
 }
 
-func (p *Politeia) getProposalIterator(n int, category int) (*ProposalsIterator, error) {
+//LoadProposalsInCategory loads n proposals in a given category
+func (p *Politeia) LoadProposalsInCategory(n int, category int) ([]PoliteiaProposal, error) {
 	tokens, err := p.getTokensToLoad(n, category)
 	if err != nil {
 		return nil, err
@@ -298,7 +303,11 @@ func (p *Politeia) getProposalIterator(n int, category int) (*ProposalsIterator,
 	if tokens == nil {
 		return nil, nil
 	}
-	props, err := p.loadProposals(p.ctx, tokens, false)
+	return p.loadProposals(p.ctx, tokens, false)
+}
+
+func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, error) {
+	props, err := p.LoadProposalsInCategory(n, category)
 	if err != nil {
 		return nil, err
 	}
@@ -309,33 +318,33 @@ func (p *Politeia) getProposalIterator(n int, category int) (*ProposalsIterator,
 //PreVote Proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadPreVoteProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatPreVote)
+	return p.getProposalIterator(n, PreVote)
 }
 
 //LoadActiveProposals returns a ProposalIterator after loading the next n
 //Active proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadActiveProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatActive)
+	return p.getProposalIterator(n, Active)
 }
 
 //LoadApprovedProposals returns a ProposalIterator after loading the next n
 //Approved proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadApprovedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatApproved)
+	return p.getProposalIterator(n, Approved)
 }
 
 //LoadRejectedProposals returns a ProposalIterator after loading the next n
 //Rejected proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadRejectedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatRejected)
+	return p.getProposalIterator(n, Rejected)
 }
 
 //LoadAbandonedProposals returns a ProposalIterator after loading the next n
 //Abandoned proposals. Returns nil, nil if there are no proposals in this category
 //left to load.
 func (p *Politeia) LoadAbandonedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, pcatAbandoned)
+	return p.getProposalIterator(n, Abandoned)
 }
