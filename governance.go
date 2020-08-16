@@ -10,11 +10,11 @@ import (
 
 //proposal categories
 const (
-	PreVote = iota
-	Active
-	Approved
-	Rejected
-	Abandoned
+	PropCategoryPreVote = iota
+	PropCategoryActive
+	PropCategoryApproved
+	PropCategoryRejected
+	PropCategoryAbandoned
 )
 
 var invTypesToHasVoteSummary map[int]bool = map[int]bool{
@@ -240,56 +240,6 @@ func (p *Politeia) getInventory() (*pwww.TokenInventory, error) {
 	return p.inventory, nil
 }
 
-//PreVoteCount returns the number of proposals in the pre-vote
-//stage in the pi inventory
-func (p *Politeia) PreVoteCount() (int, error) {
-	inv, err := p.getInventory()
-	if err != nil {
-		return -1, err
-	}
-	return len(inv.Pre), nil
-}
-
-//ActiveCount returns the number of proposals in the active
-//voting stage in the pi inventory
-func (p *Politeia) ActiveCount() (int, error) {
-	inv, err := p.getInventory()
-	if err != nil {
-		return -1, err
-	}
-	return len(inv.Active), nil
-}
-
-//ApprovedCount returns the number of approved proposals
-//in the pi inventory
-func (p *Politeia) ApprovedCount() (int, error) {
-	inv, err := p.getInventory()
-	if err != nil {
-		return -1, err
-	}
-	return len(inv.Approved), nil
-}
-
-//RejectedCount returns the number of rejected proposals
-//in the pi inventory
-func (p *Politeia) RejectedCount() (int, error) {
-	inv, err := p.getInventory()
-	if err != nil {
-		return -1, err
-	}
-	return len(inv.Rejected), nil
-}
-
-//AbandonedCount returns the number of approved proposals
-//in the pi inventory
-func (p *Politeia) AbandonedCount() (int, error) {
-	inv, err := p.getInventory()
-	if err != nil {
-		return -1, err
-	}
-	return len(inv.Abandoned), nil
-}
-
 type propResponse struct {
 	Prop *pwww.Proposal
 	Err  error
@@ -341,7 +291,7 @@ func (p *Politeia) loadProposal(ctx context.Context, ctoken string, voteSummary 
 	return prop, nil
 }
 
-func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSummary bool) ([]PoliteiaProposal, error) {
+func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSummary bool) ([]*PoliteiaProposal, error) {
 	pchan := make(chan propsResponse, 1)
 	vschan := make(chan voteSummaryResponse, 1)
 	go func() {
@@ -364,7 +314,7 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	if vsresp.Err != nil {
 		return nil, vsresp.Err
 	}
-	pprops := make([]PoliteiaProposal, 0)
+	pprops := make([]*PoliteiaProposal, 0)
 	for _, prop := range propresp.Props {
 		pp := PoliteiaProposal{Details: prop}
 		if voteSummary {
@@ -372,7 +322,7 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 				pp.VoteSummary = v
 			}
 		}
-		pprops = append(pprops, pp)
+		pprops = append(pprops, &pp)
 	}
 	return pprops, nil
 }
@@ -437,8 +387,19 @@ func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
 	return tokens, nil
 }
 
-//LoadProposalsInCategory loads n proposals in a given category
-func (p *Politeia) LoadProposalsInCategory(n int, category int) ([]PoliteiaProposal, error) {
+//CategoryCount returns the number of proposals
+//in the given proposal category in the loaded the pi inventory
+func (p *Politeia) CategoryCount(category int) (int, error) {
+	inv, err := p.getInventory()
+	if err != nil {
+		return -1, err
+	}
+	return len(inv.Abandoned), nil
+}
+
+//LoadProposalsInCategory loads n proposals in a given category.
+//category should be one of the PropCategory constants
+func (p *Politeia) LoadProposalsInCategory(n, category int) ([]*PoliteiaProposal, error) {
 	tokens, err := p.getTokensToLoad(n, category)
 	if err != nil {
 		return nil, err
@@ -450,49 +411,17 @@ func (p *Politeia) LoadProposalsInCategory(n int, category int) ([]PoliteiaPropo
 	return p.loadProposals(p.ctx, tokens, invTypesToHasVoteSummary[category])
 }
 
-func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, error) {
+//LoadProposalsInCategoryMobile loads n proposals in a given category wrapped
+//in a mobile compatibly ProposalsIterator type.
+//category should be one of the PropCategory constants
+func (p *Politeia) LoadProposalsInCategoryMobile(n, category int) (*ProposalsIterator, error) {
 	props, err := p.LoadProposalsInCategory(n, category)
 	if err != nil {
 		return nil, err
 	}
 	mprops := make([]*PoliteiaProposalMobile, len(props))
 	for i, p := range props {
-		mprops[i] = &PoliteiaProposalMobile{&p}
+		mprops[i] = &PoliteiaProposalMobile{p}
 	}
 	return &ProposalsIterator{proposals: mprops}, nil
-}
-
-//LoadPreVoteProposals returns a ProposalIterator after loading the next n
-//PreVote Proposals. Returns nil, nil if there are no proposals in this category
-//left to load.
-func (p *Politeia) LoadPreVoteProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, PreVote)
-}
-
-//LoadActiveProposals returns a ProposalIterator after loading the next n
-//Active proposals. Returns nil, nil if there are no proposals in this category
-//left to load.
-func (p *Politeia) LoadActiveProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, Active)
-}
-
-//LoadApprovedProposals returns a ProposalIterator after loading the next n
-//Approved proposals. Returns nil, nil if there are no proposals in this category
-//left to load.
-func (p *Politeia) LoadApprovedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, Approved)
-}
-
-//LoadRejectedProposals returns a ProposalIterator after loading the next n
-//Rejected proposals. Returns nil, nil if there are no proposals in this category
-//left to load.
-func (p *Politeia) LoadRejectedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, Rejected)
-}
-
-//LoadAbandonedProposals returns a ProposalIterator after loading the next n
-//Abandoned proposals. Returns nil, nil if there are no proposals in this category
-//left to load.
-func (p *Politeia) LoadAbandonedProposals(n int) (*ProposalsIterator, error) {
-	return p.getProposalIterator(n, Abandoned)
 }
