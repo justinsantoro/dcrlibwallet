@@ -180,23 +180,18 @@ func (sc errorStatusCode) UnmarshalJSON(b []byte) error {
 
 type PoliteiawwwError struct {
 	HTTPCode int
-	code     errorStatusCode `json:"errorcode"`
-	context  []string        `json:"errorcontext,omitempty"`
-}
-
-//Code returns the error code as an int
-func (e *PoliteiawwwError) Code() int {
-	return int(e.code)
+	Code     errorStatusCode `json:"errorcode"`
+	Context  []string        `json:"errorcontext,omitempty"`
 }
 
 func (e *PoliteiawwwError) String() string {
-	return fmt.Sprintf("http%d: %d - %s%s", e.HTTPCode, e.Code, e.code.String(), e.contextstr())
+	return fmt.Sprintf("http%d: %d - %s%s", e.HTTPCode, e.Code, e.Code.String(), e.contextstr())
 }
 
 func (e *PoliteiawwwError) contextstr() string {
 	var context string
-	if e.context != nil {
-		context = fmt.Sprintf(" context: %s", e.context)
+	if e.Context != nil {
+		context = fmt.Sprintf(" context: %v", e.Context)
 	}
 	return context
 }
@@ -257,7 +252,7 @@ type Proposal struct {
 }
 
 type Proposals struct {
-	Proposals []Proposal `json:"proposals"`
+	Proposals []*Proposal `json:"proposals"`
 }
 
 type proposalResult struct {
@@ -310,7 +305,7 @@ type BatchVoteSummaryResponse struct {
 type VoteSummary struct {
 	Status           int                `json:"status"`
 	Approved         bool               `json:"approved,omitempty"`
-	Type             *VoteType          `json:"type,omitempty"`
+	Type             int                `json:"type,omitempty"`
 	EligibleTickets  int                `json:"eligibletickets"`
 	Duration         int64              `json:"duration,omitempty"`
 	EndHeight        int64              `json:"endheight,omitempty"`

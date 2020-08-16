@@ -33,7 +33,7 @@ func marshalBatchRequest(ctokens []string) ([]byte, error) {
 //GetProposalBatch retrieves the proposal details for a list of proposals. This route wil not return the proposal files.
 //The number of proposals that may be requested is limited by the ProposalListPageSize property,
 //which is provided via Policy
-func (c *Client) GetProposalBatch(ctx context.Context, ctokens []string) ([]Proposal, error) {
+func (c *Client) GetProposalBatch(ctx context.Context, ctokens []string) ([]*Proposal, error) {
 	b, err := marshalBatchRequest(ctokens)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (c *Client) GetVoteSummaryBatch(ctx context.Context, ctokens []string) (*Ba
 	}
 
 	vsums := new(BatchVoteSummaryResponse)
-	if _, err := c.makeRequest(ctx, http.MethodPost, batchProposalsPath, nil, b, vsums); err != nil {
+	if _, err := c.makeRequest(ctx, http.MethodPost, batchVoteSummaryPath, nil, b, vsums); err != nil {
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func (c *Client) GetVoteSummaryBatch(ctx context.Context, ctokens []string) (*Ba
 //If after is provided,  the page of proposals returned will begin right after the proposal whose token is provided,
 //when sorted in reverse chronological order. This parameter should not be specified if before is set.
 //This parameter should be and empty string if before is set.
-func (c *Client) GetVetted(ctx context.Context, before, after string) ([]Proposal, error) {
+func (c *Client) GetVetted(ctx context.Context, before, after string) ([]*Proposal, error) {
 	qs := make(map[string]string)
 	if len(after) > 0 {
 		qs["after"] = after

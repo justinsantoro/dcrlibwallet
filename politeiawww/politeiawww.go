@@ -45,6 +45,12 @@ func NewClient(timeout time.Duration) Client {
 	}
 }
 
+//GotVersion returns whether or not the client has already
+//called Version path
+func (c *Client) GotVersion() bool {
+	return len(c.csrfToken) > 0
+}
+
 func apiPath(p string) string {
 	return endpoint + endpointPath + p
 }

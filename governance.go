@@ -27,6 +27,8 @@ type Politeia struct {
 	ctx       context.Context
 	lcount    [5]int //loaded count for each token category
 	invtypes  map[string]bool
+	version   *pwww.ServerVersion
+	policy    *pwww.ServerPolicy
 }
 
 //NewPoliteia returns a new Politeia type
@@ -124,9 +126,24 @@ func makeProposalTypemap(inv *pwww.TokenInventory) map[string]bool {
 	return tm
 }
 
+func (p *Politeia) getVersion() error {
+	if !p.client.GotVersion() {
+		v, err := p.client.GetVersion(p.ctx)
+		if err != nil {
+			return err
+		}
+		p.version = v
+	}
+	return nil
+}
+
 func (p *Politeia) getInventory() (*pwww.TokenInventory, error) {
 	if p.inventory != nil {
 		return p.inventory, nil
+	}
+
+	if err := p.getVersion(); err != nil {
+		return nil, err
 	}
 
 	inv, err := p.client.GetTokenInventory(p.ctx)
@@ -194,7 +211,7 @@ type propResponse struct {
 }
 
 type propsResponse struct {
-	Props []pwww.Proposal
+	Props []*pwww.Proposal
 	Err   error
 }
 
@@ -264,13 +281,10 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	}
 	pprops := make([]PoliteiaProposal, 0)
 	for _, prop := range propresp.Props {
-		var pp PoliteiaProposal
-		pp.Details = &prop
-
+		pp := PoliteiaProposal{Details: prop}
 		if voteSummary {
 			if v, ok := vsresp.Vsum.Summaries[prop.CensorshipRecord.Token]; ok {
 				pp.VoteSummary = v
-				continue
 			}
 		}
 		pprops = append(pprops, pp)
@@ -367,7 +381,7 @@ func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
 
 	toload := p.lcount[category] + n
 	loaded := p.lcount[category]
-	if loaded == p.lcount[category] {
+	if loaded == len(inv) {
 		return nil, nil
 	}
 
@@ -377,7 +391,7 @@ func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
 		p.lcount[category] = len(inv)
 	} else {
 		tokens = inv[loaded:toload]
-		p.lcount[category] += toload
+		p.lcount[category] += len(tokens)
 	}
 	return tokens, nil
 }
@@ -392,7 +406,7 @@ func (p *Politeia) LoadProposalsInCategory(n int, category int) ([]PoliteiaPropo
 	if tokens == nil {
 		return nil, nil
 	}
-	return p.loadProposals(p.ctx, tokens, false)
+	return p.loadProposals(p.ctx, tokens, p.invtypes[tokens[0]])
 }
 
 func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, error) {
