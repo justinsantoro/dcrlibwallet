@@ -56,99 +56,99 @@ type PoliteiaProposal struct {
 
 //PoliteiaProposalMobile is a go mobile compatible wrapper around
 //PoliteiaProposal
-type PoliteiaProposalMobile struct {
+type PoliteiaProposalWrapper struct {
 	pp *PoliteiaProposal
 }
 
-func (pm *PoliteiaProposalMobile) Name() string {
+func (pm *PoliteiaProposalWrapper) Name() string {
 	return pm.pp.Details.Name
 }
 
-func (pm *PoliteiaProposalMobile) State() int {
+func (pm *PoliteiaProposalWrapper) State() int {
 	return pm.pp.Details.State
 }
 
-func (pm *PoliteiaProposalMobile) Status() int {
+func (pm *PoliteiaProposalWrapper) Status() int {
 	return pm.pp.Details.Status
 }
 
-func (pm *PoliteiaProposalMobile) Timestamp() int64 {
+func (pm *PoliteiaProposalWrapper) Timestamp() int64 {
 	return pm.pp.Details.Timestamp
 }
 
-func (pm *PoliteiaProposalMobile) UserID() string {
+func (pm *PoliteiaProposalWrapper) UserID() string {
 	return pm.pp.Details.Username
 }
 
-func (pm *PoliteiaProposalMobile) Username() string {
+func (pm *PoliteiaProposalWrapper) Username() string {
 	return pm.pp.Details.Username
 }
 
-func (pm *PoliteiaProposalMobile) PublicKey() string {
+func (pm *PoliteiaProposalWrapper) PublicKey() string {
 	return pm.pp.Details.PublicKey
 }
 
-func (pm *PoliteiaProposalMobile) Signature() string {
+func (pm *PoliteiaProposalWrapper) Signature() string {
 	return pm.pp.Details.Signature
 }
 
-func (pm *PoliteiaProposalMobile) NumComments() int {
+func (pm *PoliteiaProposalWrapper) NumComments() int {
 	return pm.pp.Details.NumComments
 }
 
-func (pm *PoliteiaProposalMobile) Version() string {
+func (pm *PoliteiaProposalWrapper) Version() string {
 	return pm.pp.Details.Version
 }
 
-func (pm *PoliteiaProposalMobile) PublishedAt() int64 {
+func (pm *PoliteiaProposalWrapper) PublishedAt() int64 {
 	return pm.pp.Details.Timestamp
 }
 
-func (pm *PoliteiaProposalMobile) CensorshipRecord() *pwww.ProposalCensorshipRecord {
+func (pm *PoliteiaProposalWrapper) CensorshipRecord() *pwww.ProposalCensorshipRecord {
 	return pm.pp.Details.CensorshipRecord
 }
 
-func (pm *PoliteiaProposalMobile) Files() *ProposalFiles {
+func (pm *PoliteiaProposalWrapper) Files() *ProposalFiles {
 	return &ProposalFiles{files: pm.pp.Details.Files}
 }
 
-func (pm *PoliteiaProposalMobile) Metadata() *ProposalMetadataIterator {
+func (pm *PoliteiaProposalWrapper) Metadata() *ProposalMetadataIterator {
 	return &ProposalMetadataIterator{metadata: pm.pp.Details.MetaData}
 }
 
-func (pm *PoliteiaProposalMobile) VoteStatus() int {
+func (pm *PoliteiaProposalWrapper) VoteStatus() int {
 	return pm.pp.VoteSummary.Status
 }
 
-func (pm *PoliteiaProposalMobile) VoteApproved() bool {
+func (pm *PoliteiaProposalWrapper) VoteApproved() bool {
 	return pm.pp.VoteSummary.Approved
 }
 
-func (pm *PoliteiaProposalMobile) VoteType() int {
+func (pm *PoliteiaProposalWrapper) VoteType() int {
 	return pm.pp.VoteSummary.Type
 }
 
-func (pm *PoliteiaProposalMobile) VoteEligibleTickets() int {
+func (pm *PoliteiaProposalWrapper) VoteEligibleTickets() int {
 	return pm.pp.VoteSummary.EligibleTickets
 }
 
-func (pm *PoliteiaProposalMobile) VoteDuration() int64 {
+func (pm *PoliteiaProposalWrapper) VoteDuration() int64 {
 	return pm.pp.VoteSummary.Duration
 }
 
-func (pm *PoliteiaProposalMobile) VoteEndHeight() int64 {
+func (pm *PoliteiaProposalWrapper) VoteEndHeight() int64 {
 	return pm.pp.VoteSummary.EndHeight
 }
 
-func (pm *PoliteiaProposalMobile) VoteQuorumPercentage() int {
+func (pm *PoliteiaProposalWrapper) VoteQuorumPercentage() int {
 	return pm.pp.VoteSummary.QuorumPercentage
 }
 
-func (pm *PoliteiaProposalMobile) VotePassPercentage() int {
+func (pm *PoliteiaProposalWrapper) VotePassPercentage() int {
 	return pm.pp.VoteSummary.PassPercentage
 }
 
-func (pm *PoliteiaProposalMobile) VoteOptionsresult() *VoteOptionResultIterator {
+func (pm *PoliteiaProposalWrapper) VoteOptionsresult() *VoteOptionResultIterator {
 	return &VoteOptionResultIterator{opts: pm.pp.VoteSummary.OptionsResult}
 }
 
@@ -327,25 +327,33 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	return pprops, nil
 }
 
-//ProposalsIterator allows iterating over a slice of PoliteiaProposals
-type ProposalsIterator struct {
-	proposals    []*PoliteiaProposalMobile
+//PoliteiaProposals allows iterating over a slice of PoliteiaProposals
+type PoliteiaProposals struct {
+	proposals    []*PoliteiaProposal
 	currentIndex int
 }
 
+func (p *PoliteiaProposals) All() []*PoliteiaProposal {
+	return p.proposals
+}
+
+func (p *PoliteiaProposals) Count() int {
+	return len(p.proposals)
+}
+
 //Next returns the next PoliteaiProposal
-func (p *ProposalsIterator) Next() *PoliteiaProposalMobile {
+func (p *PoliteiaProposals) Next() *PoliteiaProposalWrapper {
 	if p.currentIndex < len(p.proposals) {
 		prop := p.proposals[p.currentIndex]
 		p.currentIndex++
-		return prop
+		return &PoliteiaProposalWrapper{prop}
 	}
 
 	return nil
 }
 
 //Reset resets the current index to 0
-func (p *ProposalsIterator) Reset() {
+func (p *PoliteiaProposals) Reset() {
 	p.currentIndex = 0
 }
 
@@ -405,31 +413,28 @@ func (p *Politeia) CategoryCount(category int) (int, error) {
 	return len(inv), nil
 }
 
-//LoadProposalsInCategory loads n proposals in a given category.
-//category should be one of the PropCategory constants
-func (p *Politeia) LoadProposalsInCategory(n, category int) ([]*PoliteiaProposal, error) {
+func (p *Politeia) loadProposalsInCategory(n, category int) (props []*PoliteiaProposal, err error) {
 	tokens, err := p.getTokensToLoad(n, category)
+	props = make([]*PoliteiaProposal, 0)
 	if err != nil {
-		return nil, err
+		return
 	}
 	//there are no tokens left to load
 	if tokens == nil {
-		return nil, nil
+		return
 	}
 	return p.loadProposals(p.ctx, tokens, invTypesToHasVoteSummary[category])
 }
 
-//LoadProposalsInCategoryMobile loads n proposals in a given category wrapped
-//in a mobile compatibly ProposalsIterator type.
+//LoadProposalsInCategory loads n proposals in a given category.
 //category should be one of the PropCategory constants
-func (p *Politeia) LoadProposalsInCategoryMobile(n, category int) (*ProposalsIterator, error) {
-	props, err := p.LoadProposalsInCategory(n, category)
+func (p *Politeia) LoadProposalsInCategory(n, category int) (*PoliteiaProposals, error) {
+	props, err := p.loadProposalsInCategory(n, category)
 	if err != nil {
 		return nil, err
 	}
-	mprops := make([]*PoliteiaProposalMobile, len(props))
-	for i, p := range props {
-		mprops[i] = &PoliteiaProposalMobile{p}
+	if props == nil {
+		return nil, nil
 	}
-	return &ProposalsIterator{proposals: mprops}, nil
+	return &PoliteiaProposals{proposals: props}, nil
 }
