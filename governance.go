@@ -17,6 +17,14 @@ const (
 	Abandoned
 )
 
+var invTypesToHasVoteSummary map[int]bool = map[int]bool{
+	0: false,
+	1: true,
+	2: true,
+	3: true,
+	4: false,
+}
+
 //Politeia handles the loading of proposials on
 //proposals.decred.org via a politeiawww client
 //This politeia struct handles the management of
@@ -26,7 +34,6 @@ type Politeia struct {
 	client    pwww.Client
 	ctx       context.Context
 	lcount    [5]int //loaded count for each token category
-	invtypes  map[string]bool
 	version   *pwww.ServerVersion
 	policy    *pwww.ServerPolicy
 }
@@ -109,25 +116,9 @@ func (pm *ProposalMetadataIterator) Reset() {
 	pm.currentIndex = 0
 }
 
-//builds a map of proposal tokens to whether or not they have accompanying
-//vote summaries
-func makeProposalTypemap(inv *pwww.TokenInventory) map[string]bool {
-	tm := make(map[string]bool)
-	mapTokens := func(ctokens []string, voteSummary bool) {
-		for _, token := range ctokens {
-			tm[token] = voteSummary
-		}
-	}
-	mapTokens(inv.Pre, false)
-	mapTokens(inv.Active, true)
-	mapTokens(inv.Approved, true)
-	mapTokens(inv.Rejected, true)
-	mapTokens(inv.Abandoned, false)
-	return tm
-}
-
 func (p *Politeia) getVersion() error {
 	if !p.client.GotVersion() {
+		fmt.Println("setting version")
 		v, err := p.client.GetVersion(p.ctx)
 		if err != nil {
 			return err
@@ -146,12 +137,12 @@ func (p *Politeia) getInventory() (*pwww.TokenInventory, error) {
 		return nil, err
 	}
 
+	fmt.Println("setting inventory")
 	inv, err := p.client.GetTokenInventory(p.ctx)
 	if err != nil {
 		return nil, err
 	}
 	p.inventory = inv
-	p.invtypes = makeProposalTypemap(inv)
 	return p.inventory, nil
 }
 
@@ -292,19 +283,6 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	return pprops, nil
 }
 
-//GetProposal returns a PoliteiaProposal (including files) for a specific
-//censorship token. Meant to be called when a user wants to view the actual
-//content of a specific proposal.
-//TODO: Get proposal comments
-func (p *Politeia) GetProposal(ctoken string) (*PoliteiaProposal, error) {
-	vs, ok := p.invtypes[ctoken]
-	if !ok {
-		return nil, fmt.Errorf("token: %s is not in the inventory ", ctoken)
-	}
-
-	return p.loadProposal(p.ctx, ctoken, vs)
-}
-
 func mapProposalToMobile(prop *PoliteiaProposal) *PoliteiaProposalMobile {
 	if prop == nil {
 		return nil
@@ -329,11 +307,6 @@ func mapProposalToMobile(prop *PoliteiaProposal) *PoliteiaProposalMobile {
 		},
 		VoteSummary: prop.VoteSummary,
 	}
-}
-
-func (p *Politeia) GetProposalMobile(ctoken string) (*PoliteiaProposalMobile, error) {
-	prop, err := p.GetProposal(ctoken)
-	return mapProposalToMobile(prop), err
 }
 
 //ProposalsIterator allows iterating over a slice of PoliteiaProposals
@@ -406,7 +379,7 @@ func (p *Politeia) LoadProposalsInCategory(n int, category int) ([]PoliteiaPropo
 	if tokens == nil {
 		return nil, nil
 	}
-	return p.loadProposals(p.ctx, tokens, p.invtypes[tokens[0]])
+	return p.loadProposals(p.ctx, tokens, invTypesToHasVoteSummary[category])
 }
 
 func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, error) {
