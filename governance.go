@@ -54,25 +54,106 @@ type PoliteiaProposal struct {
 	VoteSummary *pwww.VoteSummary
 }
 
-type Proposal struct {
-	Name             string
-	State            int
-	Status           int
-	Timestamp        int64
-	Username         string
-	PublicKey        string
-	Signature        string
-	NumComments      int
-	Version          string
-	PublishedAt      int64
-	Files            *ProposalFiles
-	MetaData         *ProposalMetadataIterator
-	CensorshipRecord *pwww.ProposalCensorshipRecord
-	VoteStatus       *pwww.VoteStatus
+//PoliteiaProposalMobile is a go mobile compatible wrapper around
+//PoliteiaProposal
+type PoliteiaProposalMobile struct {
+	pp *PoliteiaProposal
+}
+
+func (pm *PoliteiaProposalMobile) Name() string {
+	return pm.pp.Details.Name
+}
+
+func (pm *PoliteiaProposalMobile) State() int {
+	return pm.pp.Details.State
+}
+
+func (pm *PoliteiaProposalMobile) Status() int {
+	return pm.pp.Details.Status
+}
+
+func (pm *PoliteiaProposalMobile) Timestamp() int64 {
+	return pm.pp.Details.Timestamp
+}
+
+func (pm *PoliteiaProposalMobile) UserID() string {
+	return pm.pp.Details.Username
+}
+
+func (pm *PoliteiaProposalMobile) Username() string {
+	return pm.pp.Details.Username
+}
+
+func (pm *PoliteiaProposalMobile) PublicKey() string {
+	return pm.pp.Details.PublicKey
+}
+
+func (pm *PoliteiaProposalMobile) Signature() string {
+	return pm.pp.Details.Signature
+}
+
+func (pm *PoliteiaProposalMobile) NumComments() int {
+	return pm.pp.Details.NumComments
+}
+
+func (pm *PoliteiaProposalMobile) Version() string {
+	return pm.pp.Details.Version
+}
+
+func (pm *PoliteiaProposalMobile) PublishedAt() int64 {
+	return pm.pp.Details.Timestamp
+}
+
+func (pm *PoliteiaProposalMobile) CensorshipRecord() *pwww.ProposalCensorshipRecord {
+	return pm.pp.Details.CensorshipRecord
+}
+
+func (pm *PoliteiaProposalMobile) Files() *ProposalFiles {
+	return &ProposalFiles{files: pm.pp.Details.Files}
+}
+
+func (pm *PoliteiaProposalMobile) Metadata() *ProposalMetadataIterator {
+	return &ProposalMetadataIterator{metadata: pm.pp.Details.MetaData}
+}
+
+func (pm *PoliteiaProposalMobile) VoteStatus() int {
+	return pm.pp.VoteSummary.Status
+}
+
+func (pm *PoliteiaProposalMobile) VoteApproved() bool {
+	return pm.pp.VoteSummary.Approved
+}
+
+func (pm *PoliteiaProposalMobile) VoteType() int {
+	return pm.pp.VoteSummary.Type
+}
+
+func (pm *PoliteiaProposalMobile) VoteEligibleTickets() int {
+	return pm.pp.VoteSummary.EligibleTickets
+}
+
+func (pm *PoliteiaProposalMobile) VoteDuration() int64 {
+	return pm.pp.VoteSummary.Duration
+}
+
+func (pm *PoliteiaProposalMobile) VoteEndHeight() int64 {
+	return pm.pp.VoteSummary.EndHeight
+}
+
+func (pm *PoliteiaProposalMobile) VoteQuorumPercentage() int {
+	return pm.pp.VoteSummary.QuorumPercentage
+}
+
+func (pm *PoliteiaProposalMobile) VotePassPercentage() int {
+	return pm.pp.VoteSummary.PassPercentage
+}
+
+func (pm *PoliteiaProposalMobile) VoteOptionsresult() *VoteOptionResultIterator {
+	return &VoteOptionResultIterator{opts: pm.pp.VoteSummary.OptionsResult}
 }
 
 type ProposalFiles struct {
-	files        []pwww.ProposalFile
+	files        []*pwww.ProposalFile
 	currentIndex int
 }
 
@@ -80,7 +161,7 @@ func (fs *ProposalFiles) Next() *pwww.ProposalFile {
 	if fs.currentIndex < len(fs.files) {
 		pf := fs.files[fs.currentIndex]
 		fs.currentIndex++
-		return &pf
+		return pf
 	}
 
 	return nil
@@ -92,20 +173,15 @@ func (fs *ProposalFiles) Reset() {
 }
 
 type ProposalMetadataIterator struct {
-	metadata     []pwww.ProposalMetaData
+	metadata     []*pwww.ProposalMetaData
 	currentIndex int
-}
-
-type PoliteiaProposalMobile struct {
-	Details     *Proposal
-	VoteSummary *pwww.VoteSummary
 }
 
 func (pm *ProposalMetadataIterator) Next() *pwww.ProposalMetaData {
 	if pm.currentIndex < len(pm.metadata) {
 		md := pm.metadata[pm.currentIndex]
 		pm.currentIndex++
-		return &md
+		return md
 	}
 
 	return nil
@@ -114,6 +190,24 @@ func (pm *ProposalMetadataIterator) Next() *pwww.ProposalMetaData {
 //Reset resets the current index to 0
 func (pm *ProposalMetadataIterator) Reset() {
 	pm.currentIndex = 0
+}
+
+type VoteOptionResultIterator struct {
+	opts         []*pwww.VoteOptionResult
+	currentIndex int
+}
+
+func (vor *VoteOptionResultIterator) Next() *pwww.VoteOptionResult {
+	if vor.currentIndex < len(vor.opts) {
+		r := vor.opts[vor.currentIndex]
+		vor.currentIndex++
+		return r
+	}
+	return nil
+}
+
+func (vor *VoteOptionResultIterator) Reset() {
+	vor.currentIndex = 0
 }
 
 func (p *Politeia) getVersion() error {
@@ -283,32 +377,6 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	return pprops, nil
 }
 
-func mapProposalToMobile(prop *PoliteiaProposal) *PoliteiaProposalMobile {
-	if prop == nil {
-		return nil
-	}
-	d := prop.Details
-	return &PoliteiaProposalMobile{
-		Details: &Proposal{
-			Name:             d.Name,
-			State:            d.State,
-			Status:           d.Status,
-			Timestamp:        d.Timestamp,
-			Username:         d.Username,
-			PublicKey:        d.PublicKey,
-			Signature:        d.Signature,
-			NumComments:      d.NumComments,
-			Version:          d.Version,
-			PublishedAt:      d.PublishedAt,
-			Files:            &ProposalFiles{d.Files, 0},
-			MetaData:         &ProposalMetadataIterator{d.MetaData, 0},
-			CensorshipRecord: d.CensorshipRecord,
-			VoteStatus:       d.VoteStatus,
-		},
-		VoteSummary: prop.VoteSummary,
-	}
-}
-
 //ProposalsIterator allows iterating over a slice of PoliteiaProposals
 type ProposalsIterator struct {
 	proposals    []*PoliteiaProposalMobile
@@ -389,7 +457,7 @@ func (p *Politeia) getProposalIterator(n, category int) (*ProposalsIterator, err
 	}
 	mprops := make([]*PoliteiaProposalMobile, len(props))
 	for i, p := range props {
-		mprops[i] = mapProposalToMobile(&p)
+		mprops[i] = &PoliteiaProposalMobile{&p}
 	}
 	return &ProposalsIterator{proposals: mprops}, nil
 }

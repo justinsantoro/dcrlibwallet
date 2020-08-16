@@ -245,10 +245,9 @@ type Proposal struct {
 	NumComments      int                       `json:"numcomments"`
 	Version          string                    `json:"version"`
 	PublishedAt      int64                     `json:"publishedat"`
-	Files            []ProposalFile            `json:"files"`
-	MetaData         []ProposalMetaData        `json:"metadata"`
+	Files            []*ProposalFile            `json:"files"`
+	MetaData         []*ProposalMetaData        `json:"metadata"`
 	CensorshipRecord *ProposalCensorshipRecord `json:"censorshiprecord"`
-	VoteStatus       *VoteStatus               `json:"votestatus"`
 }
 
 type Proposals struct {
@@ -311,7 +310,7 @@ type VoteSummary struct {
 	EndHeight        int64              `json:"endheight,omitempty"`
 	QuorumPercentage int                `json:"quorumpercentage,omitempty"`
 	PassPercentage   int                `json:"passpercentage,omitempty"`
-	OptionsResult    []VoteOptionResult `json:"optionsresult,omitempty"`
+	OptionsResult    []*VoteOptionResult `json:"optionsresult,omitempty"`
 }
 
 type VoteType struct {
