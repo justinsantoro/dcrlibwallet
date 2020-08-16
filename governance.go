@@ -349,25 +349,33 @@ func (p *ProposalsIterator) Reset() {
 	p.currentIndex = 0
 }
 
-func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
+func (p *Politeia) getCategoryInventory(category int) ([]string, error) {
 	var inv []string
 	tinv, err := p.getInventory()
 	if err != nil {
 		return nil, err
 	}
 	switch category {
-	case 0:
+	case PropCategoryPreVote:
 		inv = tinv.Pre
-	case 1:
+	case PropCategoryActive:
 		inv = tinv.Active
-	case 2:
+	case PropCategoryApproved:
 		inv = tinv.Approved
-	case 3:
+	case PropCategoryRejected:
 		inv = tinv.Rejected
-	case 4:
+	case PropCategoryAbandoned:
 		inv = tinv.Abandoned
 	default:
 		return nil, fmt.Errorf("invalid proposal category: %d", category)
+	}
+	return inv, nil
+}
+
+func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
+	inv, err := p.getCategoryInventory(category)
+	if err != nil {
+		return nil, err
 	}
 
 	toload := p.lcount[category] + n
@@ -390,11 +398,11 @@ func (p *Politeia) getTokensToLoad(n int, category int) ([]string, error) {
 //CategoryCount returns the number of proposals
 //in the given proposal category in the loaded the pi inventory
 func (p *Politeia) CategoryCount(category int) (int, error) {
-	inv, err := p.getInventory()
+	inv, err := p.getCategoryInventory(category)
 	if err != nil {
 		return -1, err
 	}
-	return len(inv.Abandoned), nil
+	return len(inv), nil
 }
 
 //LoadProposalsInCategory loads n proposals in a given category.
