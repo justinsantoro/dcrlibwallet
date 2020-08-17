@@ -6,6 +6,7 @@ import (
 	"time"
 
 	pwww "github.com/planetdecred/dcrlibwallet/politeiawww"
+	"golang.org/x/sync/errgroup"
 )
 
 //proposal categories
@@ -87,6 +88,16 @@ func (pp *PoliteiaProposal) UpdateComments() error {
 	return nil
 }
 
+func (pp *PoliteiaProposal) Update(updateDetails bool) error {
+	g := new(errgroup.Group)
+	if updateDetails {
+		g.Go(pp.UpdateDetails)
+	}
+	g.Go(pp.UpdateVoteSummary)
+	g.Go(pp.UpdateComments)
+	return g.Wait()
+}
+
 //PoliteiaProposalMobile is a go mobile compatible wrapper around
 //PoliteiaProposal
 type PoliteiaProposalWrapper struct {
@@ -103,6 +114,10 @@ func (pm *PoliteiaProposalWrapper) UpdateVoteSummary() error {
 
 func (pm *PoliteiaProposalWrapper) UpdateComments() error {
 	return pm.pp.UpdateComments()
+}
+
+func (pm *PoliteiaProposalWrapper) Update(updateDetails bool) error {
+	return pm.pp.Update(updateDetails)
 }
 
 func (pm *PoliteiaProposalWrapper) Name() string {
