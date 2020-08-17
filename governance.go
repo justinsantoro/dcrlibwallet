@@ -50,14 +50,45 @@ func NewPoliteia(timeoutSeconds int64) *Politeia {
 //and vote summary if applicable. If a proposal is Pre-vote
 //or abandoned, VoteSummary will be nil
 type PoliteiaProposal struct {
+	client      *pwww.Client
 	Details     *pwww.Proposal
 	VoteSummary *pwww.VoteSummary
+}
+
+func (pp *PoliteiaProposal) CensorshipToken() string {
+	return pp.Details.CensorshipRecord.Token
+}
+
+func (pp *PoliteiaProposal) UpdateVoteSummary() error {
+	vs, err := pp.client.GetVoteSummaryBatch(context.Background(), []string{pp.CensorshipToken()})
+	if err != nil {
+		return err
+	}
+	pp.VoteSummary = vs.Summaries[pp.CensorshipToken()]
+	return nil
+}
+
+func (pp *PoliteiaProposal) UpdateDetails() error {
+	prop, err := pp.client.GetProposalDetails(context.Background(), pp.CensorshipToken(), "")
+	if err != nil {
+		return err
+	}
+	pp.Details = prop
+	return nil
 }
 
 //PoliteiaProposalMobile is a go mobile compatible wrapper around
 //PoliteiaProposal
 type PoliteiaProposalWrapper struct {
 	pp *PoliteiaProposal
+}
+
+func (pm *PoliteiaProposalWrapper) UpdateDetails() error {
+	return pm.pp.UpdateDetails()
+}
+
+func (pm *PoliteiaProposalWrapper) UpdateVoteSummary() error {
+	return pm.pp.UpdateVoteSummary()
 }
 
 func (pm *PoliteiaProposalWrapper) Name() string {
@@ -316,7 +347,7 @@ func (p *Politeia) loadProposals(ctx context.Context, ctokens []string, voteSumm
 	}
 	pprops := make([]*PoliteiaProposal, 0)
 	for _, prop := range propresp.Props {
-		pp := PoliteiaProposal{Details: prop}
+		pp := PoliteiaProposal{Details: prop, client: &p.client}
 		if voteSummary {
 			if v, ok := vsresp.Vsum.Summaries[prop.CensorshipRecord.Token]; ok {
 				pp.VoteSummary = v
