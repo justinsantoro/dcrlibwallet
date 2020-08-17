@@ -53,6 +53,7 @@ type PoliteiaProposal struct {
 	client      *pwww.Client
 	Details     *pwww.Proposal
 	VoteSummary *pwww.VoteSummary
+	Comments    *pwww.CommentsResponse
 }
 
 func (pp *PoliteiaProposal) CensorshipToken() string {
@@ -77,6 +78,15 @@ func (pp *PoliteiaProposal) UpdateDetails() error {
 	return nil
 }
 
+func (pp *PoliteiaProposal) UpdateComments() error {
+	comm, err := pp.client.GetProposalComments(context.Background(), pp.CensorshipToken())
+	if err != nil {
+		return err
+	}
+	pp.Comments = comm
+	return nil
+}
+
 //PoliteiaProposalMobile is a go mobile compatible wrapper around
 //PoliteiaProposal
 type PoliteiaProposalWrapper struct {
@@ -89,6 +99,10 @@ func (pm *PoliteiaProposalWrapper) UpdateDetails() error {
 
 func (pm *PoliteiaProposalWrapper) UpdateVoteSummary() error {
 	return pm.pp.UpdateVoteSummary()
+}
+
+func (pm *PoliteiaProposalWrapper) UpdateComments() error {
+	return pm.pp.UpdateComments()
 }
 
 func (pm *PoliteiaProposalWrapper) Name() string {
@@ -183,6 +197,14 @@ func (pm *PoliteiaProposalWrapper) VoteOptionsresult() *VoteOptionResultIterator
 	return &VoteOptionResultIterator{opts: pm.pp.VoteSummary.OptionsResult}
 }
 
+func (pm *PoliteiaProposalWrapper) CommentsAccessTime() int64 {
+	return pm.pp.Comments.AccessTime
+}
+
+func (pm *PoliteiaProposalWrapper) Comments() *ProposalCommentsIterator {
+	return &ProposalCommentsIterator{comments: pm.pp.Comments.Comments}
+}
+
 type ProposalFiles struct {
 	files        []*pwww.ProposalFile
 	currentIndex int
@@ -239,6 +261,24 @@ func (vor *VoteOptionResultIterator) Next() *pwww.VoteOptionResult {
 
 func (vor *VoteOptionResultIterator) Reset() {
 	vor.currentIndex = 0
+}
+
+type ProposalCommentsIterator struct {
+	comments     []*pwww.Comments
+	currentIndex int
+}
+
+func (pci *ProposalCommentsIterator) Next() *pwww.Comments {
+	if pci.currentIndex < len(pci.comments) {
+		c := pci.comments[pci.currentIndex]
+		pci.currentIndex++
+		return c
+	}
+	return nil
+}
+
+func (pci *ProposalCommentsIterator) Reset() {
+	pci.currentIndex = 0
 }
 
 func (p *Politeia) getVersion() error {
