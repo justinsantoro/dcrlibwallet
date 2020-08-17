@@ -24,6 +24,7 @@ const (
 	tokenInventoryPath   = "/proposals/tokeninventory"
 	batchProposalsPath   = "/proposals/batch"
 	batchVoteSummaryPath = "/proposals/batchvotesummary"
+	proposalCommentsPath = "/proposals/%s/comments"
 
 	csrfTokenHeaderName = "X-CSRF-TOKEN"
 	sessionCookieName   = "_gorilla_csrf"

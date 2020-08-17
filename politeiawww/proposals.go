@@ -115,3 +115,12 @@ func (c *Client) GetVoteStatus(ctx context.Context, ctoken string) (*VoteStatus,
 	}
 	return vs, nil
 }
+
+//GetProposalComments retrieves all comments for given proposal. Note that the comments are not sorted.
+func (c *Client) GetProposalComments(ctx context.Context, ctoken string) (*CommentsResponse, error) {
+	cr := new(CommentsResponse)
+	if _, err := c.makeRequest(ctx, http.MethodGet, fmt.Sprintf(proposalCommentsPath, ctoken), nil, nil, cr); err != nil {
+		return nil, err
+	}
+	return cr, nil
+}

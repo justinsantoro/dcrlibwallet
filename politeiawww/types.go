@@ -245,8 +245,8 @@ type Proposal struct {
 	NumComments      int                       `json:"numcomments"`
 	Version          string                    `json:"version"`
 	PublishedAt      int64                     `json:"publishedat"`
-	Files            []*ProposalFile            `json:"files"`
-	MetaData         []*ProposalMetaData        `json:"metadata"`
+	Files            []*ProposalFile           `json:"files"`
+	MetaData         []*ProposalMetaData       `json:"metadata"`
 	CensorshipRecord *ProposalCensorshipRecord `json:"censorshiprecord"`
 }
 
@@ -302,14 +302,14 @@ type BatchVoteSummaryResponse struct {
 	Summaries map[string]*VoteSummary `json:"summaries"`
 }
 type VoteSummary struct {
-	Status           int                `json:"status"`
-	Approved         bool               `json:"approved,omitempty"`
-	Type             int                `json:"type,omitempty"`
-	EligibleTickets  int                `json:"eligibletickets"`
-	Duration         int64              `json:"duration,omitempty"`
-	EndHeight        int64              `json:"endheight,omitempty"`
-	QuorumPercentage int                `json:"quorumpercentage,omitempty"`
-	PassPercentage   int                `json:"passpercentage,omitempty"`
+	Status           int                 `json:"status"`
+	Approved         bool                `json:"approved,omitempty"`
+	Type             int                 `json:"type,omitempty"`
+	EligibleTickets  int                 `json:"eligibletickets"`
+	Duration         int64               `json:"duration,omitempty"`
+	EndHeight        int64               `json:"endheight,omitempty"`
+	QuorumPercentage int                 `json:"quorumpercentage,omitempty"`
+	PassPercentage   int                 `json:"passpercentage,omitempty"`
 	OptionsResult    []*VoteOptionResult `json:"optionsresult,omitempty"`
 }
 
@@ -317,4 +317,26 @@ type VoteType struct {
 	VoteTypeInvalid  int
 	VoteTypeStandard int
 	VoteType         int
+}
+
+type CommentsResponse struct {
+	Comments   []*Comments `json:"Comments"`
+	AccessTime int64       `json:"AccessTime,omitempty"`
+}
+
+type Comments struct {
+	UserID      string `json:"UserID"`
+	Username    string `json:"username"`
+	Timestamp   int64  `json:"timestamp"`
+	CommentID   string `json:"commentid"`
+	ParentID    string `json:"parentid"`
+	Token       string `json:"token"`
+	Comment     string `json:"comment"`
+	PublicKey   string `json:"publickey"`
+	Signature   string `json:"signature"`
+	Receipt     string `json:"receipt"`
+	TotalVotes  int64  `json:"totalvotes"`
+	ResultVotes int64  `json:"resultvotes"`
+	Upvotes     int64  `json:"upvotes"`
+	Downvotes   int64  `json:"downvotes"`
 }
