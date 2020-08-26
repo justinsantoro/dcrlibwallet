@@ -13,15 +13,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"decred.org/dcrwallet/p2p"
 	"github.com/decred/dcrd/addrmgr"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/gcs/blockcf"
+	"github.com/decred/dcrd/gcs/v2/blockcf2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrwallet/errors/v2"
 	"github.com/decred/dcrwallet/lru"
-	"github.com/decred/dcrwallet/p2p/v2"
-	"github.com/decred/dcrwallet/validate"
-	"github.com/decred/dcrwallet/wallet/v3"
+	"decred.org/dcrwallet/validate"
+	"decred.org/dcrwallet/wallet"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -54,7 +54,7 @@ type Syncer struct {
 	// TODO: Replace precise rescan filter with wallet db accesses to avoid
 	// needing to keep all relevant data in memory.
 	rescanFilter map[int]*wallet.RescanFilter
-	filterData   map[int]*blockcf.Entries
+	filterData   map[int]*blockcf2.Entries
 	filterMu     sync.Mutex
 
 	// seenTxs records hashes of received inventoried transactions.  Once a
@@ -110,12 +110,12 @@ type Notifications struct {
 // NewSyncer creates a Syncer that will sync the wallet using SPV.
 func NewSyncer(wallets map[int]*wallet.Wallet, lp *p2p.LocalPeer) *Syncer {
 	rescanFilter := make(map[int]*wallet.RescanFilter)
-	filterData := make(map[int]*blockcf.Entries)
+	filterData := make(map[int]*blockcf2.Entries)
 	atomicWalletsSynced := make(map[int]*uint32, len(wallets))
 
 	for walletID := range wallets {
 		rescanFilter[walletID] = wallet.NewRescanFilter(nil, nil)
-		filterData[walletID] = &blockcf.Entries{}
+		filterData[walletID] = &blockcf2.Entries{}
 		atomicWalletsSynced[walletID] = new(uint32)
 	}
 
@@ -332,7 +332,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 
 	// Seed peers over DNS when not disabled by persistent peers.
 	if len(s.persistentPeers) == 0 {
-		s.lp.DNSSeed(wire.SFNodeNetwork | wire.SFNodeCF)
+		s.lp.SeedPeers(ctx, wire.SFNodeNetwork|wire.SFNodeCF)
 	}
 
 	// Start background handlers to read received messages from remote peers
@@ -814,7 +814,7 @@ ProcessTx:
 	for walletID, w := range s.wallets {
 		relevant := s.filterRelevant(txs, walletID)
 		for _, tx := range relevant {
-			err := w.AcceptMempoolTx(ctx, tx)
+			err := w.AddTransaction(ctx, tx, nil)
 			if err != nil {
 				op := errors.Opf(opf, rp.RemoteAddr())
 				log.Warn(errors.E(op, err))
@@ -888,8 +888,8 @@ FilterLoop:
 		worker := func() {
 			for i := range c {
 				n := chain[i]
-				f := n.Filter
-				k := blockcf.Key(n.Hash)
+				f := n.FilterV2
+				k := blockcf2.Key(n.Hash)
 				if f.N() != 0 && f.MatchAny(k, filterData) {
 					fmatchMu.Lock()
 					fmatches = append(fmatches, n.Hash)
@@ -932,11 +932,6 @@ FilterLoop:
 				if err != nil {
 					err = validate.DCP0005MerkleRoot(b)
 				}
-				if err != nil {
-					rp.Disconnect(err)
-					return nil, err
-				}
-				err = validate.RegularCFilter(b, chain[i].Filter)
 				if err != nil {
 					rp.Disconnect(err)
 					return nil, err
@@ -992,7 +987,7 @@ func (s *Syncer) handleBlockAnnouncements(ctx context.Context, rp *p2p.RemotePee
 		hash := h.BlockHash()
 		blockHashes = append(blockHashes, &hash)
 	}
-	filters, err := rp.CFilters(ctx, blockHashes)
+	filters, err := rp.CFiltersV2(ctx, blockHashes)
 	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -1016,7 +1011,7 @@ func (s *Syncer) handleBlockAnnouncements(ctx context.Context, rp *p2p.RemotePee
 				if haveBlock {
 					continue
 				}
-				n := wallet.NewBlockNode(headers[i], blockHashes[i], filters[i])
+				n := wallet.NewBlockNode(headers[i], blockHashes[i], filters[i].Filter)
 				if s.sidechains.AddBlockNode(n) {
 					newBlocks = append(newBlocks, n)
 				}
@@ -1155,7 +1150,7 @@ func (s *Syncer) getHeaders(ctx context.Context, rp *p2p.RemotePeer) error {
 			g.Go(func() error {
 				header := headers[i]
 				hash := header.BlockHash()
-				filter, err := rp.CFilter(ctx, &hash)
+				filter, _, _, err := rp.CFilterV2(ctx, &hash)
 				if err != nil {
 					return err
 				}
@@ -1307,7 +1302,8 @@ func (s *Syncer) startupSync(ctx context.Context, rp *p2p.RemotePeer) error {
 				s.unsynced(walletID)
 
 				s.discoverAddressesStart(walletID)
-				err = w.DiscoverActiveAddresses(ctx, rp, rescanPoint, !w.Locked())
+				discoverAccounts := !w.Locked()
+				err = w.DiscoverActiveAddresses(ctx, rp, rescanPoint, discoverAccounts, w.GapLimit())
 				if err != nil {
 					return err
 				}

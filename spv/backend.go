@@ -9,16 +9,17 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/decred/dcrd/gcs/v2/blockcf2"
+
+	"decred.org/dcrwallet/p2p"
+	"decred.org/dcrwallet/validate"
+	"decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/gcs"
-	"github.com/decred/dcrd/gcs/blockcf"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/gcs/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrwallet/errors/v2"
-	"github.com/decred/dcrwallet/p2p/v2"
-	"github.com/decred/dcrwallet/validate"
-	"github.com/decred/dcrwallet/wallet/v3"
 )
 
 var _ wallet.NetworkBackend = (*WalletBackend)(nil)
@@ -54,7 +55,7 @@ func (wb *WalletBackend) Blocks(ctx context.Context, blockHashes []*chainhash.Ha
 }
 
 // CFilters implements the CFilters method of the wallet.Peer interface.
-func (wb *WalletBackend) CFilters(ctx context.Context, blockHashes []*chainhash.Hash) ([]*gcs.Filter, error) {
+func (wb *WalletBackend) CFiltersV2(ctx context.Context, blockHashes []*chainhash.Hash) ([]wallet.FilterProof, error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -63,7 +64,7 @@ func (wb *WalletBackend) CFilters(ctx context.Context, blockHashes []*chainhash.
 		if err != nil {
 			return nil, err
 		}
-		fs, err := rp.CFilters(ctx, blockHashes)
+		fs, err := rp.CFiltersV2(ctx, blockHashes)
 		if err != nil {
 			continue
 		}
@@ -102,13 +103,16 @@ func (wb *WalletBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []
 	wb.filterMu.Lock()
 	if reload || wb.rescanFilter[wb.WalletID] == nil {
 		wb.rescanFilter[wb.WalletID] = wallet.NewRescanFilter(nil, nil)
-		wb.filterData[wb.WalletID] = &blockcf.Entries{}
+		wb.filterData[wb.WalletID] = &blockcf2.Entries{}
 	}
 	for _, addr := range addrs {
 		var pkScript []byte
+		type scripter interface {
+			PaymentScript() (uint16, []byte)
+		}
 		switch addr := addr.(type) {
-		case wallet.V0Scripter:
-			pkScript = addr.ScriptV0()
+		case scripter:
+			_, pkScript = addr.PaymentScript()
 		default:
 			pkScript, _ = txscript.PayToAddrScript(addr)
 		}
@@ -119,7 +123,6 @@ func (wb *WalletBackend) LoadTxFilter(ctx context.Context, reload bool, addrs []
 	}
 	for i := range outpoints {
 		wb.rescanFilter[wb.WalletID].AddUnspentOutPoint(&outpoints[i])
-		wb.filterData[wb.WalletID].AddOutPoint(&outpoints[i])
 	}
 	wb.filterMu.Unlock()
 	return nil
@@ -153,9 +156,9 @@ func (wb *WalletBackend) Rescan(ctx context.Context, blockHashes []chainhash.Has
 		return errors.E(op, errors.Invalid)
 	}
 
-	cfilters := make([]*gcs.Filter, 0, len(blockHashes))
+	cfilters := make([]*gcs.FilterV2, 0, len(blockHashes))
 	for i := 0; i < len(blockHashes); i++ {
-		f, err := w.CFilter(ctx, &blockHashes[i])
+		_, f, err := w.CFilterV2(ctx, &blockHashes[i])
 		if err != nil {
 			return err
 		}
@@ -187,7 +190,7 @@ FilterLoop:
 			go func() {
 				for i := range c {
 					blockHash := &blockHashes[i]
-					key := blockcf.Key(blockHash)
+					key := blockcf2.Key(blockHash)
 					f := cfilters[i]
 					if f.MatchAny(key, filterData) {
 						fmatchMu.Lock()
@@ -241,13 +244,6 @@ FilterLoop:
 					if err != nil {
 						err = validate.DCP0005MerkleRoot(b)
 					}
-					if err != nil {
-						err := errors.E(op, err)
-						rp.Disconnect(err)
-						rp = nil
-						continue PickPeer
-					}
-					err = validate.RegularCFilter(b, cfilters[i])
 					if err != nil {
 						err := errors.E(op, err)
 						rp.Disconnect(err)

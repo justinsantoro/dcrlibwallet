@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"decred.org/dcrwallet/rpc/client/dcrd"
+	w "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txrules"
+	"decred.org/dcrwallet/wallet/txsizes"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrwallet/errors/v2"
-	"github.com/decred/dcrwallet/rpc/client/dcrd"
-	w "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
 
 // StakeInfo returns information about wallet stakes, tickets and their statuses.
@@ -223,9 +224,13 @@ func (wallet *Wallet) PurchaseTickets(ctx context.Context, request *PurchaseTick
 		return nil, errors.New("Zero or negative number of tickets given")
 	}
 
+	inSizes := []int{txsizes.RedeemP2PKHSigScriptSize}
+	outSizes := []int{txsizes.P2PKHPkScriptSize + 1, txsizes.TicketCommitmentScriptSize, txsizes.P2PKHPkScriptSize + 1}
+	estSize := txsizes.EstimateSerializeSizeFromScriptSizes(inSizes, outSizes, 0)
+
 	expiry := int32(request.Expiry)
 	txFee := dcrutil.Amount(request.TxFee)
-	ticketFee := wallet.internal.TicketFeeIncrement()
+	ticketFee := txrules.FeeForSerializeSize(txFee, estSize)
 
 	// Set the ticket fee if specified
 	if request.TicketFee > 0 {
@@ -258,14 +263,14 @@ func (wallet *Wallet) PurchaseTickets(ctx context.Context, request *PurchaseTick
 		return nil, err
 	}
 
-	purchasedTickets, err := wallet.internal.PurchaseTicketsContext(ctx, netBackend, purchaseTicketsRequest)
+	resp, err := wallet.internal.PurchaseTickets(ctx, netBackend, purchaseTicketsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("unable to purchase tickets: %s", err.Error())
 	}
 
-	hashes := make([]string, len(purchasedTickets))
-	for i, hash := range purchasedTickets {
-		hashes[i] = hash.String()
+	hashes := make([]string, len(resp.Tickets))
+	for i, hash := range resp.Tickets {
+		hashes[i] = hash.TxHash().String() //use cached?
 	}
 
 	return hashes, nil
