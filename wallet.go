@@ -3,11 +3,13 @@ package dcrlibwallet
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	"decred.org/dcrwallet/vsp"
 	w "decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrwallet/errors/v2"
@@ -31,6 +33,7 @@ type Wallet struct {
 	dataDir     string
 	loader      *loader.Loader
 	txDB        *txindex.DB
+	vsp         *vsp.VSP
 
 	synced  bool
 	syncing bool
@@ -277,4 +280,10 @@ func (wallet *Wallet) DecryptSeed(privatePassphrase []byte) (string, error) {
 	}
 
 	return decryptWalletSeed(privatePassphrase, wallet.EncryptedSeed)
+}
+
+func (wallet *Wallet) newVSP(hostname, pubKeyStr string, purchaseAccount uint32) (err error) {
+	dialer := new(net.Dialer)
+	wallet.vsp, err = vsp.New(hostname, pubKeyStr, purchaseAccount, purchaseAccount, dialer.DialContext, wallet.internal, wallet.chainParams)
+	return
 }
