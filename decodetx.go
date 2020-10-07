@@ -98,7 +98,7 @@ func decodeTxInputs(mtx *wire.MsgTx, walletInputs []*WalletInput) (inputs []*TxI
 
 func decodeTxOutputs(mtx *wire.MsgTx, netParams *chaincfg.Params, walletOutputs []*WalletOutput) (outputs []*TxOutput) {
 	outputs = make([]*TxOutput, len(mtx.TxOut))
-	txType := stake.DetermineTxType(mtx)
+	txType := stake.DetermineTxType(mtx, true) //yes treasury
 
 	for i, txOut := range mtx.TxOut {
 		// get address and script type for output
@@ -148,7 +148,7 @@ func decodeTxOutputs(mtx *wire.MsgTx, netParams *chaincfg.Params, walletOutputs 
 }
 
 func voteInfo(msgTx *wire.MsgTx) (ssGenVersion uint32, lastBlockValid bool, voteBits string, ticketSpentHash string) {
-	if stake.IsSSGen(msgTx) {
+	if stake.IsSSGen(msgTx, true) {
 		ssGenVersion = stake.SSGenVersion(msgTx)
 		bits := stake.SSGenVoteBits(msgTx)
 		voteBits = fmt.Sprintf("%#04x", bits)
