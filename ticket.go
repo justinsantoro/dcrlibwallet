@@ -13,7 +13,6 @@ import (
 	"decred.org/dcrwallet/rpc/client/dcrd"
 	w "decred.org/dcrwallet/wallet"
 	"decred.org/dcrwallet/wallet/txrules"
-	"decred.org/dcrwallet/wallet/txsizes"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
@@ -184,7 +183,7 @@ func (wallet *Wallet) PurchaseTickets(ctx context.Context, request *PurchaseTick
 	// fetch redeem script, ticket address, pool address and pool fee if vsp host isn't empty
 	if vspHost != "" {
 		if err = wallet.updateTicketPurchaseRequestWithVSPInfo(vspHost, request); err != nil {
-			return nil, err
+			return nil, err //put this back
 		}
 	}
 
@@ -224,15 +223,11 @@ func (wallet *Wallet) PurchaseTickets(ctx context.Context, request *PurchaseTick
 		return nil, errors.New("Zero or negative number of tickets given")
 	}
 
-	inSizes := []int{txsizes.RedeemP2PKHSigScriptSize}
-	outSizes := []int{txsizes.P2PKHPkScriptSize + 1, txsizes.TicketCommitmentScriptSize, txsizes.P2PKHPkScriptSize + 1}
-	estSize := txsizes.EstimateSerializeSizeFromScriptSizes(inSizes, outSizes, 0)
-
 	expiry := int32(request.Expiry)
 	txFee := dcrutil.Amount(request.TxFee)
-	ticketFee := txrules.FeeForSerializeSize(txFee, estSize)
 
 	// Set the ticket fee if specified
+	var ticketFee dcrutil.Amount
 	if request.TicketFee > 0 {
 		ticketFee = dcrutil.Amount(request.TicketFee)
 	}
@@ -256,6 +251,14 @@ func (wallet *Wallet) PurchaseTickets(ctx context.Context, request *PurchaseTick
 		VotingAddress: ticketAddr,
 		MinConf:       minConf,
 		Expiry:        expiry,
+
+		VSPAddress: poolAddr,
+		VSPFees:    request.PoolFees,
+	}
+
+	if wallet.vsp != nil {
+		purchaseTicketsRequest.VSPFeePaymentProcess = wallet.vsp.Process
+		purchaseTicketsRequest.VSPFeeProcess = wallet.vsp.PoolFee
 	}
 
 	netBackend, err := wallet.internal.NetworkBackend()
